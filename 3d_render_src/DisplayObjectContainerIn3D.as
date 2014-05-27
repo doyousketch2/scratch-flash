@@ -1255,7 +1255,7 @@ package {
 			//__context.addEventListener(Event.DEACTIVATE, onContextLoss);
 
 			__context.setDepthTest(false, Context3DCompareMode.ALWAYS);
-			__context.enableErrorChecking = true;
+			//__context.enableErrorChecking = true;
 			
 			program = __context.createProgram();
 			setupShaders();
@@ -1544,7 +1544,7 @@ package {
 				"mov ft5.w, ft2.z\n"+ //mov ft5.w, v; // v
 
 				/*** FIX i to be an integer on Intel Graphics 3000 with Chrome Pepper Flash ***/
-				"add ft3.x, ft3.x, fc0.w\n"+ // fix i?
+				//"add ft3.x, ft3.x, fc0.w\n"+ // fix i?
 				"frc ft3.y, ft3.x\n"+ // fix i?
 				"sub ft3.x, ft3.x, ft3.y\n"+ // fix i?
 

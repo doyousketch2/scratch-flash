@@ -40,7 +40,6 @@ package scratch {
 public class PaletteBuilder {
 
 	protected var app:Scratch;
-	protected var nextY:int;
 
 	public function PaletteBuilder(app:Scratch) {
 		this.app = app;
@@ -53,13 +52,18 @@ public class PaletteBuilder {
 			'New List', 'List name', 'New Variable', 'Variable name'];
 	}
 
-	public function showBlocksForCategory(selectedCategory:int, scrollToOrigin:Boolean, shiftKey:Boolean = false):void {
-		if (app.palette == null) return;
-		app.palette.clear(scrollToOrigin);
-		nextY = 7;
+	public function showBlocksForCategory(selectedCategory:int, palette:Sprite, shiftKey:Boolean = false):void {
+		if (palette == null) return;
+		var nextY:int = 7;
 
-		if (selectedCategory == Specs.dataCategory) return showDataCategory();
-		if (selectedCategory == Specs.myBlocksCategory) return showMyBlocksPalette(shiftKey);
+		if (selectedCategory == Specs.dataCategory) {
+			showDataCategory(palette, nextY);
+			return;
+		}
+		if (selectedCategory == Specs.myBlocksCategory) {
+			showMyBlocksPalette(shiftKey, palette, nextY);
+			return;
+		}
 
 		var catName:String = Specs.categories[selectedCategory][1];
 		var catColor:int = Specs.blockColor(selectedCategory);
@@ -68,17 +72,17 @@ public class PaletteBuilder {
 			var stageSpecific:Array = ['Control', 'Looks', 'Motion', 'Pen', 'Sensing'];
 			if (stageSpecific.indexOf(catName) != -1) selectedCategory += 100;
 			if (catName == 'Motion') {
-				addItem(makeLabel(Translator.map('Stage selected:')));
+				nextY = addItem(makeLabel(Translator.map('Stage selected:')), palette, nextY);
 				nextY -= 6;
-				addItem(makeLabel(Translator.map('No motion blocks')));
+				nextY = addItem(makeLabel(Translator.map('No motion blocks')), palette, nextY);
 				return;
 			}
 		}
-		addBlocksForCategory(selectedCategory, catColor);
-		updateCheckboxes();
+		nextY = addBlocksForCategory(selectedCategory, catColor, palette, nextY);
+		updateCheckboxes(palette);
 	}
 
-	private function addBlocksForCategory(category:int, catColor:int):void {
+	private function addBlocksForCategory(category:int, catColor:int, palette:Sprite, nextY:int):int {
 		var cmdCount:int;
 		var targetObj:ScratchObj = app.viewedObj();
 		for each (var spec:Array in Specs.commands) {
@@ -89,22 +93,24 @@ public class PaletteBuilder {
 				if(targetObj.isStage && spec[3] == 'whenClicked') label = 'when Stage clicked';
 				var block:Block = new Block(label, spec[1], blockColor, spec[3], defaultArgs);
 				var showCheckbox:Boolean = isCheckboxReporter(spec[3]);
-				if (showCheckbox) addReporterCheckbox(block);
-				addItem(block, showCheckbox);
+				if (showCheckbox) addReporterCheckbox(block, palette, nextY);
+				nextY = addItem(block, palette, nextY, showCheckbox);
 				cmdCount++;
 			} else {
 				if ((spec.length == 1) && (cmdCount > 0)) nextY += 10 * spec[0].length; // add some space
 				cmdCount = 0;
 			}
 		}
+
+		return nextY;
 	}
 
-	protected function addItem(o:DisplayObject, hasCheckbox:Boolean = false):void {
+	protected function addItem(o:DisplayObject, palette:Sprite, nextY:int, hasCheckbox:Boolean = false):int {
 		o.x = hasCheckbox ? 23 : 6;
 		o.y = nextY;
-		app.palette.addChild(o);
-		app.palette.updateSize();
-		nextY += o.height + 5;
+		palette.addChild(o);
+		if('updateSize' in palette) palette['updateSize']();
+		return nextY + o.height + 5;
 	}
 
 	private function makeLabel(label:String):TextField {
@@ -117,59 +123,62 @@ public class PaletteBuilder {
 		return t;
 	}
 
-	private function showMyBlocksPalette(shiftKey:Boolean):void {
+	private function showMyBlocksPalette(shiftKey:Boolean, palette:Sprite, nextY:int):int {
 		// show creation button, hat, and call blocks
 		var catColor:int = Specs.blockColor(Specs.procedureColor);
-		addItem(new Button(Translator.map('Make a Block'), makeNewBlock, false, '/help/studio/tips/blocks/make-a-block/'));
+		addItem(new Button(Translator.map('Make a Block'), makeNewBlock, false, '/help/studio/tips/blocks/make-a-block/'), palette, nextY);
 		var definitions:Array = app.viewedObj().procedureDefinitions();
 		if (definitions.length > 0) {
 			nextY += 5;
 			for each (var proc:Block in definitions) {
 				var b:Block = new Block(proc.spec, ' ', Specs.procedureColor, Specs.CALL, proc.defaultArgValues);
-				addItem(b);
+				nextY = addItem(b, palette, nextY);
 			}
 			nextY += 5;
 		}
 
-		addItem(new Button(Translator.map('Add an Extension'), showAnExtension, false, '/help/studio/tips/blocks/add-an-extension/'));
+		nextY = addItem(new Button(Translator.map('Add an Extension'), showAnExtension, false, '/help/studio/tips/blocks/add-an-extension/'), palette, nextY);
 		for each (var ext:* in app.extensionManager.enabledExtensions()) {
-			addExtensionSeparator(ext);
-			addBlocksForExtension(ext);
+			nextY = addExtensionSeparator(ext, palette, nextY);
+			nextY = addBlocksForExtension(ext, palette, nextY);
 		}
 
-		updateCheckboxes();
+		updateCheckboxes(palette);
+		return nextY;
 	}
 
-	private function showDataCategory():void {
+	private function showDataCategory(palette:Sprite, nextY:int):int {
 		var catColor:int = Specs.variableColor;
 
 		// variable buttons, reporters, and set/change blocks
-		addItem(new Button(Translator.map('Make a Variable'), makeVariable));
+		nextY = addItem(new Button(Translator.map('Make a Variable'), makeVariable), palette, nextY);
 		var varNames:Array = app.runtime.allVarNames().sort();
 		if (varNames.length > 0) {
 			for each (var n:String in varNames) {
-				addVariableCheckbox(n, false);
-				addItem(new Block(n, 'r', catColor, Specs.GET_VAR), true);
+				addVariableCheckbox(n, false, palette, nextY);
+				addItem(new Block(n, 'r', catColor, Specs.GET_VAR), palette, nextY, true);
 			}
 			nextY += 10;
-			addBlocksForCategory(Specs.dataCategory, catColor);
+			addBlocksForCategory(Specs.dataCategory, catColor, palette, nextY);
 			nextY += 15;
 		}
 
 		// lists
 		catColor = Specs.listColor;
-		addItem(new Button(Translator.map('Make a List'), makeList));
+		nextY = addItem(new Button(Translator.map('Make a List'), makeList), palette, nextY);
 
 		var listNames:Array = app.runtime.allListNames().sort();
 		if (listNames.length > 0) {
 			for each (n in listNames) {
-				addVariableCheckbox(n, true);
-				addItem(new Block(n, 'r', catColor, Specs.GET_LIST), true);
+				addVariableCheckbox(n, true, palette, nextY);
+				nextY = addItem(new Block(n, 'r', catColor, Specs.GET_LIST), palette, nextY, true);
 			}
 			nextY += 10;
-			addBlocksForCategory(Specs.listCategory, catColor);
+			nextY = addBlocksForCategory(Specs.listCategory, catColor, palette, nextY);
 		}
-		updateCheckboxes();
+		updateCheckboxes(palette);
+
+		return nextY;
 	}
 
 	protected function createVar(name:String, varSettings:VariableSettings):* {
@@ -254,7 +263,7 @@ public class PaletteBuilder {
 		lib.open();
 	}
 
-	protected function addReporterCheckbox(block:Block):void {
+	protected function addReporterCheckbox(block:Block, palette:Sprite, nextY:int):void {
 		var b:IconButton = new IconButton(toggleWatcher, 'checkbox');
 		b.disableMouseover();
 		var targetObj:ScratchObj = isSpriteSpecific(block.op) ? app.viewedObj() : app.stagePane;
@@ -267,7 +276,7 @@ public class PaletteBuilder {
 		};
 		b.x = 6;
 		b.y = nextY + 5;
-		app.palette.addChild(b);
+		palette.addChild(b);
 	}
 
 	protected function isCheckboxReporter(op:String):Boolean {
@@ -290,7 +299,7 @@ public class PaletteBuilder {
 		return '';
 	}
 
-	private function addVariableCheckbox(varName:String, isList:Boolean):void {
+	private function addVariableCheckbox(varName:String, isList:Boolean, palette:Sprite, nextY:int):void {
 		var b:IconButton = new IconButton(toggleWatcher, 'checkbox');
 		b.disableMouseover();
 		var targetObj:ScratchObj = app.viewedObj();
@@ -307,7 +316,7 @@ public class PaletteBuilder {
 		};
 		b.x = 6;
 		b.y = nextY + 5;
-		app.palette.addChild(b);
+		palette.addChild(b);
 	}
 
 	private function toggleWatcher(b:IconButton):void {
@@ -329,16 +338,16 @@ public class PaletteBuilder {
 		app.setSaveNeeded();
 	}
 
-	private function updateCheckboxes():void {
-		for (var i:int = 0; i < app.palette.numChildren; i++) {
-			var b:IconButton = app.palette.getChildAt(i) as IconButton;
+	private function updateCheckboxes(palette:Sprite):void {
+		for (var i:int = 0; i < palette.numChildren; i++) {
+			var b:IconButton = palette.getChildAt(i) as IconButton;
 			if (b && b.clientData) {
 				b.setOn(app.runtime.watcherShowing(b.clientData));
 			}
 		}
 	}
 
-	private function addExtensionSeparator(ext:ScratchExtension):void {
+	private function addExtensionSeparator(ext:ScratchExtension, palette:Sprite, nextY:int):int {
 		function extensionMenu(ignore:*):void {
 			var m:Menu = new Menu();
 			m.addItem(Translator.map('About') + ' ' + ext.name + ' ' + Translator.map('extension') + '...', showAbout);
@@ -346,11 +355,8 @@ public class PaletteBuilder {
 			m.showOnStage(app.stage);
 		}
 		function showAbout():void {
-			// Open in the tips window if the URL starts with /info/ and another tab otherwise
-			if (ext.url) {
-				if (ext.url.indexOf('/info/') === 0) app.showTip(ext.url);
-				else navigateToURL(new URLRequest(ext.url));
-			}
+			// TODO: Currently opens a browser tab, but should navigate to a tip
+			if (ext.url) navigateToURL(new URLRequest(ext.url));
 		}
 		function hideExtension():void {
 			app.extensionManager.setEnabled(ext.name, false);
@@ -361,22 +367,24 @@ public class PaletteBuilder {
 		var titleButton:IconButton = UIPart.makeMenuButton(ext.name, extensionMenu, true, CSS.textColor);
 		titleButton.x = 5;
 		titleButton.y = nextY;
-		app.palette.addChild(titleButton);
+		palette.addChild(titleButton);
 
 		var x:int = titleButton.width + 12;
-		addLine(x, nextY + 9, app.palette.width - x - 38);
+		addLine(x, nextY + 9, palette.width - x - 38, palette);
 
 		var indicator:IndicatorLight = new IndicatorLight(ext);
 		indicator.addEventListener(MouseEvent.CLICK, function(e:Event):void {Scratch.app.showTip('extensions');}, false, 0, true);
 		app.extensionManager.updateIndicator(indicator, ext);
-		indicator.x = app.palette.width - 30;
+		indicator.x = palette.width - 30;
 		indicator.y = nextY + 2;
-		app.palette.addChild(indicator);
+		palette.addChild(indicator);
 
 		nextY += titleButton.height + 10;
+
+		return nextY;
 	}
 
-	private function addBlocksForExtension(ext:ScratchExtension):void {
+	private function addBlocksForExtension(ext:ScratchExtension, palette:Sprite, nextY:int):int {
 		var blockColor:int = Specs.extensionsColor;
 		var opPrefix:String = ext.useScratchPrimitives ? '' : ext.name + '.';
 		for each (var spec:Array in ext.blockSpecs) {
@@ -385,15 +393,17 @@ public class PaletteBuilder {
 				var defaultArgs:Array = spec.slice(3);
 				var block:Block = new Block(spec[1], spec[0], blockColor, op, defaultArgs);
 				var showCheckbox:Boolean = (spec[0] == 'r' && defaultArgs.length == 0);
-				if (showCheckbox) addReporterCheckbox(block);
-				addItem(block, showCheckbox);
+				if (showCheckbox) addReporterCheckbox(block, palette, nextY);
+				nextY = addItem(block, palette, nextY, showCheckbox);
 			} else {
 				if (spec.length == 1) nextY += 10 * spec[0].length; // add some space
 			}
 		}
+
+		return nextY;
 	}
 
-	private function addLine(x:int, y:int, w:int):void {
+	private function addLine(x:int, y:int, w:int, palette:Sprite):void {
 		const light:int = 0xF2F2F2;
 		const dark:int = CSS.borderColor - 0x141414;
 		var line:Shape = new Shape();
@@ -408,7 +418,7 @@ public class PaletteBuilder {
 		g.lineTo(w, 1);
 		line.x = x;
 		line.y = y;
-		app.palette.addChild(line);
+		palette.addChild(line);
 	}
 
 }}

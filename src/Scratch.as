@@ -39,6 +39,9 @@ package {
 	import blocks.*;
 
 	import scratch.*;
+
+	import ui.parts.base.IScriptsPart;
+
 	import watchers.ListWatcher;
 
 	import translation.*;
@@ -68,6 +71,7 @@ public class Scratch extends Sprite {
 	// Runtime
 	public var runtime:ScratchRuntime;
 	public var interp:Interpreter;
+	public var palBuilder:PaletteBuilder;
 	public var extensionManager:ExtensionManager;
 	public var server:Server;
 	public var gh:GestureHandler;
@@ -99,8 +103,8 @@ public class Scratch extends Sprite {
 	public var libraryPart:LibraryPart;
 	protected var topBarPart:TopBarPart;
 	protected var stagePart:StagePart;
-	private var tabsPart:TabsPart;
-	protected var scriptsPart:ScriptsPart;
+	protected var tabsPart:TabsPart;
+	protected var scriptsPart:IScriptsPart;
 	public var imagesPart:ImagesPart;
 	protected var soundsPart:SoundsPart;
 
@@ -123,6 +127,7 @@ public class Scratch extends Sprite {
 		gh = new GestureHandler(this, (loaderInfo.parameters['inIE'] == 'true'));
 		initInterpreter();
 		initRuntime();
+		initPaletteBuilder();
 		extensionManager = new ExtensionManager(this);
 		Translator.initializeLanguageList();
 
@@ -165,6 +170,10 @@ public class Scratch extends Sprite {
 
 	protected function initServer():void {
 		server = new Server();
+	}
+
+	protected function initPaletteBuilder():void {
+		palBuilder = new PaletteBuilder(this);
 	}
 
 	public function showTip(tipName:String):void {}
@@ -366,7 +375,7 @@ public class Scratch extends Sprite {
 	public function updatePalette(clearCaches:Boolean = true):void {
 		// Note: updatePalette() is called after changing variable, list, or procedure
 		// definitions, so this is a convenient place to clear the interpreter's caches.
-		if (isShowing(scriptsPart)) scriptsPart.updatePalette();
+		if (isShowing(scriptsPart as DisplayObject)) scriptsPart.updatePalette();
 		if (clearCaches) runtime.clearAllCaches();
 	}
 
@@ -469,7 +478,7 @@ public class Scratch extends Sprite {
 			soundsPart.currentIndex = 0;
 			soundsPart.refresh();
 		}
-		if (isShowing(scriptsPart)) {
+		if (isShowing(scriptsPart as DisplayObject)) {
 			scriptsPart.updatePalette();
 			scriptsPane.viewScriptsFor(obj);
 			scriptsPart.updateSpriteWatermark();
@@ -479,7 +488,7 @@ public class Scratch extends Sprite {
 	public function setTab(tabName:String):void {
 		if (isShowing(imagesPart)) imagesPart.editor.shutdown();
 		if (isShowing(soundsPart)) soundsPart.editor.shutdown();
-		hide(scriptsPart);
+		hide(scriptsPart as DisplayObject);
 		hide(imagesPart);
 		hide(soundsPart);
 		if (!editMode) return;
@@ -494,7 +503,7 @@ public class Scratch extends Sprite {
 			scriptsPart.updatePalette();
 			scriptsPane.viewScriptsFor(viewedObject);
 			scriptsPart.updateSpriteWatermark();
-			show(scriptsPart);
+			show(scriptsPart as DisplayObject);
 		}
 		show(tabsPart);
 		show(stagePart); // put stage in front
@@ -522,13 +531,17 @@ public class Scratch extends Sprite {
 		stagePart = getStagePart();
 		libraryPart = getLibraryPart();
 		tabsPart = new TabsPart(this);
-		scriptsPart = new ScriptsPart(this);
+		scriptsPart = getScriptsPart();
 		imagesPart = new ImagesPart(this);
 		soundsPart = new SoundsPart(this);
 		addChild(topBarPart);
 		addChild(stagePart);
 		addChild(libraryPart);
 		addChild(tabsPart);
+	}
+
+	protected function getScriptsPart():IScriptsPart {
+		return new ScriptsPart(this);
 	}
 
 	protected function getStagePart():StagePart {
@@ -631,10 +644,11 @@ public class Scratch extends Sprite {
 	}
 
 	protected function updateContentArea(contentX:int, contentY:int, contentW:int, contentH:int, fullH:int):void {
-		imagesPart.x = soundsPart.x = scriptsPart.x = contentX;
-		imagesPart.y = soundsPart.y = scriptsPart.y = contentY;
+		imagesPart.x = soundsPart.x = contentX;
+		imagesPart.y = soundsPart.y = contentY;
 		imagesPart.setWidthHeight(contentW, contentH);
 		soundsPart.setWidthHeight(contentW, contentH);
+		scriptsPart.setXY(contentX, contentY);
 		scriptsPart.setWidthHeight(contentW, contentH);
 
 		if (mediaLibrary) mediaLibrary.setWidthHeight(topBarPart.w, fullH);
@@ -646,7 +660,7 @@ public class Scratch extends Sprite {
 		if(isIn3D) render3D.onStageResize();
 	}
 
-	private function drawBG():void {
+	protected function drawBG():void {
 		var g:Graphics = playerBG.graphics;
 		g.clear();
 		g.beginFill(0);
@@ -1003,7 +1017,7 @@ public class Scratch extends Sprite {
 		lp = null;
 	}
 
-	private function fixLoadProgressLayout():void {
+	protected function fixLoadProgressLayout():void {
 		if (!lp) return;
 		var p:Point = stagePane.localToGlobal(new Point(0, 0));
 		lp.scaleX = stagePane.scaleX;

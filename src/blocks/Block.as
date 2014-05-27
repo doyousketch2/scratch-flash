@@ -102,6 +102,7 @@ public class Block extends Sprite {
 		this.spec = Translator.map(spec);
 		this.type = type;
 		this.op = op;
+		scaleX = scaleY = 2;
 
 		if ((Specs.CALL == op) ||
 			(Specs.GET_LIST == op) ||

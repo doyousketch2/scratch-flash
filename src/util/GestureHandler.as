@@ -79,6 +79,8 @@ public class GestureHandler {
 	private var mouseTarget:*;
 	private var objToGrabOnUp:Sprite;
 	private var mouseDownEvent:MouseEvent;
+	private var mouseDownX:Number;
+	private var mouseDownY:Number;
 	private var inIE:Boolean;
 
 	public function GestureHandler(app:Scratch, inIE:Boolean) {
@@ -161,6 +163,8 @@ public class GestureHandler {
 		}
 		mouseDownTime = getTimer();
 		mouseDownEvent = evt;
+		mouseDownX = app.stage.mouseX;
+		mouseDownY = app.stage.mouseY;
 		gesture = "unknown";
 		mouseTarget = null;
 
@@ -208,15 +212,19 @@ public class GestureHandler {
 			if (mouseTarget != null) handleDrag(evt);
 			return;
 		}
-		if ((gesture == "drag") && (carriedObj is Block)) {
-			app.scriptsPane.updateFeedbackFor(Block(carriedObj));
-		}
-		if ((gesture == "drag") && (carriedObj is ScratchSprite)) {
-			var stageP:Point = app.stagePane.globalToLocal(carriedObj.localToGlobal(new Point(0, 0)));
-			var spr:ScratchSprite = ScratchSprite(carriedObj);
-			spr.scratchX = stageP.x - 240;
-			spr.scratchY = 180 - stageP.y;
-			spr.updateBubble();
+		if (gesture == "drag" && carriedObj) {
+			evt.stopImmediatePropagation();
+
+			if (carriedObj is Block) {
+				app.scriptsPane.updateFeedbackFor(Block(carriedObj));
+			}
+			else if (carriedObj is ScratchSprite) {
+				var stageP:Point = app.stagePane.globalToLocal(carriedObj.localToGlobal(new Point(0, 0)));
+				var spr:ScratchSprite = ScratchSprite(carriedObj);
+				spr.scratchX = stageP.x - 240;
+				spr.scratchY = 180 - stageP.y;
+				spr.updateBubble();
+			}
 		}
 	}
 
@@ -260,17 +268,17 @@ public class GestureHandler {
 		var o:DisplayObject = evt.target as DisplayObject;
 		var mouseTarget:Boolean = false;
 		while (o != null) {
-			if (isMouseTarget(o, evt.stageX / app.scaleX, evt.stageY / app.scaleY)) {
+			if (isMouseTarget(o, app.stage.mouseX / app.scaleX, app.stage.mouseY / app.scaleY)) {
 				mouseTarget = true;
 				break;
 			}
 			o = o.parent;
 		}
 		var rect:Rectangle = app.stageObj().getRect(app.stage);
-		if(!mouseTarget && rect.contains(evt.stageX, evt.stageY))  return findMouseTargetOnStage(evt.stageX / app.scaleX, evt.stageY / app.scaleY);
+		if(!mouseTarget && rect.contains(app.stage.mouseX, app.stage.mouseY))  return findMouseTargetOnStage(app.stage.mouseX / app.scaleX, app.stage.mouseY / app.scaleY);
 		if (o == null) return null;
 		if ((o is Block) && Block(o).isEmbeddedInProcHat()) return o.parent;
-		if (o is ScratchObj) return findMouseTargetOnStage(evt.stageX / app.scaleX, evt.stageY / app.scaleY);
+		if (o is ScratchObj) return findMouseTargetOnStage(app.stage.mouseX / app.scaleX, app.stage.mouseY / app.scaleY);
 		return o;
 	}
 
@@ -413,8 +421,8 @@ public class GestureHandler {
 		obj.x = globalP.x;
 		obj.y = globalP.y;
 		if (evt && mouseDownEvent) {
-			obj.x += evt.stageX - mouseDownEvent.stageX;
-			obj.y += evt.stageY - mouseDownEvent.stageY;
+			obj.x += app.stage.mouseX - mouseDownX;
+			obj.y += app.stage.mouseY - mouseDownY;
 		}
 		obj.startDrag();
 		if(obj is DisplayObject) obj.cacheAsBitmap = true;
