@@ -72,7 +72,7 @@ public class PaletteSelector extends Sprite {
 				y = startY;
 			}
 			var entry:Array = Specs.entryForCategory(categories[i]);
-			var item:PaletteSelectorItem = new PaletteSelectorItem(entry[0], Translator.map(entry[1]), entry[2], 100);
+			var item:PaletteSelectorItem = new PaletteSelectorItem(entry[0], Translator.map(entry[1]), entry[2]);
 			itemH = item.height;
 			item.x = x;
 			item.y = y;
