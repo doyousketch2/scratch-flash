@@ -24,17 +24,16 @@
 
 package ui.parts {
 	import flash.display.*;
-	import flash.geom.*;
 	import flash.text.*;
 	import flash.utils.*;
 	import scratch.*;
 	import translation.Translator;
 	import ui.media.*;
 	import ui.SpriteThumbnail;
+	import ui.parts.base.ILibraryPart;
 	import uiwidgets.*;
-	import util.ProjectIO;
 
-public class LibraryPart extends UIPart {
+public class LibraryPart extends UIPart implements ILibraryPart{
 
 	private const smallTextFormat:TextFormat = new TextFormat(CSS.font, 10, CSS.textColor);
 
@@ -99,6 +98,11 @@ public class LibraryPart extends UIPart {
 			'Choose sprite from library', 'Paint new sprite', 'Upload sprite from file', 'New sprite from camera',
 			'Choose backdrop from library', 'Paint new backdrop', 'Upload backdrop from file', 'New backdrop from camera',
 		];
+	}
+
+	public function setXY(x:Number, y:Number):void {
+		this.x = x;
+		this.y = y;
 	}
 
 	public function updateTranslation():void {
@@ -184,7 +188,7 @@ public class LibraryPart extends UIPart {
 		// after loading project, or adding or deleting a sprite.
 		newSpriteLabel.visible = !app.stageIsContracted;
 		spritesTitle.visible = !app.stageIsContracted;
-		if (app.viewedObj().isStage) showSpriteDetails(false);
+		if (app.viewedObj() && app.viewedObj().isStage) showSpriteDetails(false);
 		if (spriteDetails.visible) spriteDetails.refresh();
 		stageThumbnail.setTarget(app.stageObj());
 		spritesPane.clear(false);
@@ -293,7 +297,7 @@ public class LibraryPart extends UIPart {
 	// Video Button
 	//------------------------------
 
-	public	function showVideoButton():void {
+	public function showVideoButton():void {
 		// Show the video button. Turn on the camera the first time this is called.
 		if (videoButton.visible) return; // already showing
 		videoButton.visible = true;

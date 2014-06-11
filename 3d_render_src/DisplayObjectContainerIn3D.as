@@ -18,27 +18,26 @@
  */
 
 package {
-	import com.adobe.utils.*;
-
-	import flash.display.Bitmap;
-	import flash.display.BitmapData;
-	import flash.display.DisplayObject;
-	import flash.display.Shape;
-	import flash.display.Sprite;
-	import flash.display.Stage3D;
-	import flash.display3D.*;
-	import flash.events.ErrorEvent;
-	import flash.events.Event;
-	import flash.events.KeyboardEvent;
-	import flash.geom.ColorTransform;
-	import flash.geom.Matrix;
-	import flash.geom.Matrix3D;
-	import flash.geom.Point;
-	import flash.geom.Rectangle;
-	import flash.geom.Vector3D;
-	import flash.utils.ByteArray;
-	import flash.utils.Dictionary;
-	import flash.utils.Endian;
+import com.adobe.utils.*;
+import flash.display.Bitmap;
+import flash.display.BitmapData;
+import flash.display.DisplayObject;
+import flash.display.Shape;
+import flash.display.Sprite;
+import flash.display.Stage3D;
+import flash.display3D.*;
+import flash.events.ErrorEvent;
+import flash.events.Event;
+import flash.events.KeyboardEvent;
+import flash.geom.ColorTransform;
+import flash.geom.Matrix;
+import flash.geom.Matrix3D;
+import flash.geom.Point;
+import flash.geom.Rectangle;
+import flash.geom.Vector3D;
+import flash.utils.ByteArray;
+import flash.utils.Dictionary;
+import flash.utils.Endian;
 
 /**
 	 *   A display object container which renders in 3D instead
@@ -63,7 +62,8 @@ package {
 		private var textures:Array;
 		private var testBMs:Array;
 		private var textureIndexByID:Object;
-		private static var texSize:int = 2048;
+		private static var texSizeMax:int = 2048;
+		private static var texSize:int = 1024;
 		private var penPacked:Boolean;
 
 		/** Triangle index data */
@@ -247,7 +247,8 @@ package {
 			var p:Point = scratchStage.localToGlobal(originPt);
 			stage3D.x = p.x;
 			stage3D.y = p.y;
-			var width:uint = Math.ceil(480*scratchStage.scaleX), height:uint = Math.ceil(360*scratchStage.scaleX);
+			var width:uint = Math.ceil(480*scratchStage.scaleX),
+					height:uint = Math.ceil(360*scratchStage.scaleY);
 			var rect:Rectangle = new Rectangle(0, 0, width, height);
 			if(stage3D.context3D && (!scissorRect || !scissorRect.equals(rect))) {
 				scissorRect = rect;
@@ -310,10 +311,6 @@ package {
 
 			if(boundsDict[e.target])
 				delete boundsDict[e.target];
-		}
-
-		public function getUIContainer():Sprite {
-			return uiContainer;
 		}
 
 		private function checkBuffers():void {
@@ -571,7 +568,7 @@ package {
 			vertexData.writeFloat(hueShift);
 			vertexData.writeFloat(fisheye);
 			vertexData.writeFloat(brightnessShift);
-			vertexData.writeFloat(texIndex);
+			vertexData.writeFloat(texIndex + 0.01);
 
 			vertexData.writeFloat(BLx);			    // x
 			vertexData.writeFloat(BLy);			    // y
@@ -590,7 +587,7 @@ package {
 			vertexData.writeFloat(hueShift);
 			vertexData.writeFloat(fisheye);
 			vertexData.writeFloat(brightnessShift);
-			vertexData.writeFloat(texIndex);
+			vertexData.writeFloat(texIndex + 0.02);
 
 			vertexData.writeFloat(BRx);			    // x
 			vertexData.writeFloat(BRy);			    // y
@@ -609,7 +606,7 @@ package {
 			vertexData.writeFloat(hueShift);
 			vertexData.writeFloat(fisheye);
 			vertexData.writeFloat(brightnessShift);
-			vertexData.writeFloat(texIndex);
+			vertexData.writeFloat(texIndex + 0.03);
 
 			vertexData.writeFloat(TRx);			    // x
 			vertexData.writeFloat(TRy);			    // y
@@ -628,7 +625,7 @@ package {
 			vertexData.writeFloat(hueShift);
 			vertexData.writeFloat(fisheye);
 			vertexData.writeFloat(brightnessShift);
-			vertexData.writeFloat(texIndex);
+			vertexData.writeFloat(texIndex + 0.04);
 		}
 		
 		private function cleanupUnusedBitmaps():void {
@@ -902,6 +899,7 @@ package {
 			}
 		}
 
+		private var maxTextures:uint = 5;
 		private function packTextureBitmaps():void
 		{
 			var penID:String = spriteBitmaps[stagePenLayer];
@@ -919,6 +917,8 @@ package {
 			}
 
 			var cleanedUnused:Boolean = false;
+			var usedMaxTex:Boolean = false;
+			var size:uint = texSize;
 			while(true) {
 				var unpackedBMs:Object = {};
 				var bmsToPack:int = 0;
@@ -930,9 +930,9 @@ package {
 					}
 	
 				//trace('pack textures! ('+bmsToPack+')');
-				for(var i:int=1; i<6 && bmsToPack > 0; ++i) {
+				for(var i:int=1; i<maxTextures && bmsToPack > 0; ++i) {
 					if(i >= textures.length)
-						textures.push(new ScratchTextureBitmap(texSize, texSize));
+						textures.push(new ScratchTextureBitmap(size, size));
 	
 					var newTex:ScratchTextureBitmap = textures[i];
 					var packedIDs:Array = newTex.packBitmaps(unpackedBMs);
@@ -944,33 +944,22 @@ package {
 					bmsToPack -= packedIDs.length;
 				}
 
-				if(debugTexture) {
-					var offset:Number = 0;
-					for(i=0; i<textures.length; ++i) {
-						newTex = textures[i];
-						if(i >= testBMs.length)
-							testBMs.push(new Bitmap(newTex));
-						var testBM:Bitmap = testBMs[i];
-						//testBM.scaleX = testBM.scaleY = 0.5;
-						testBM.x = 380 + offset;
-//						trace('Debugging '+Dbg.printObj(newTex));
-						//testBM.y = -900;
-						testBM.bitmapData = newTex;
-						scratchStage.stage.addChild(testBM);
-						for (k in bitmapsByID) {
-							if(i == textureIndexByID[k]) {
-								var rect:Rectangle = newTex.getRect(k as String).clone();
-								uiContainer.graphics.drawRect(testBM.x + rect.x * testBM.scaleX, rect.y * testBM.scaleX, rect.width * testBM.scaleX, rect.height * testBM.scaleX);
-							}
-						}
-						offset += testBM.width;
-					}
-				}
-
 				if(bmsToPack > 0) {
 					if(!cleanedUnused) {
 						cleanupUnusedBitmaps();
 						cleanedUnused = true;
+					}
+					else if(!usedMaxTex) {
+						for(i=1; i<textures.length; ++i) {
+							textures[i].disposeTexture();
+							textures[i].dispose();
+							textures[i] = null;
+						}
+						textures.length = 1;
+
+						size = texSizeMax;
+						usedMaxTex = true;
+						trace('switching to large textures');
 					}
 					else {
 						// Bail on 3D
@@ -979,6 +968,29 @@ package {
 					}
 				}
 				else {
+					if(debugTexture) {
+						var offset:Number = 0;
+						for(i=0; i<textures.length; ++i) {
+							newTex = textures[i];
+							if(i >= testBMs.length)
+								testBMs.push(new Bitmap(newTex));
+							var testBM:Bitmap = testBMs[i];
+							testBM.scaleX = testBM.scaleY = 0.5;
+							testBM.x = 380 + offset;
+//						trace('Debugging '+Dbg.printObj(newTex));
+							//testBM.y = -900;
+							testBM.bitmapData = newTex;
+							scratchStage.stage.addChild(testBM);
+							for (k in bitmapsByID) {
+								if(i == textureIndexByID[k]) {
+									var rect:Rectangle = newTex.getRect(k as String).clone();
+									uiContainer.graphics.drawRect(testBM.x + rect.x * testBM.scaleX, rect.y * testBM.scaleX, rect.width * testBM.scaleX, rect.height * testBM.scaleX);
+								}
+							}
+							offset += testBM.width;
+						}
+					}
+
 					break;
 				}
 			}
@@ -1200,7 +1212,7 @@ package {
 			
 			// assign texture to texture sampler 0
 			//__context.setScissorRectangle(getChildAt(0).getRect(stage));
-			for(var i:int=0; i<6; ++i) {
+			for(var i:int=0; i<maxTextures; ++i) {
 				var tIdx:int = (i >= textures.length ? 0 : i);
 				__context.setTextureAt(i, (textures[tIdx] as ScratchTextureBitmap).getTexture(__context));
 			}
@@ -1255,7 +1267,7 @@ package {
 			//__context.addEventListener(Event.DEACTIVATE, onContextLoss);
 
 			__context.setDepthTest(false, Context3DCompareMode.ALWAYS);
-			//__context.enableErrorChecking = true;
+			__context.enableErrorChecking = true;
 			
 			program = __context.createProgram();
 			setupShaders();
@@ -1274,9 +1286,9 @@ package {
 				"mov v0, va1\n"+ // copy u,v, u0, v0
 				"mov v1, va2\n"+ // copy w, h, alpha, mosaic
 				"mov v2, va3\n"+ // copy p_x, p_y, whirlRadians, (push fisheye here?)
-				"mov v3, va4\n" // copy hueShift, fisheye, brightness, texture index
+				"mov v3, va4\n"  // copy hueShift, fisheye, brightness, texture index
 			);
-			
+
 			fragmentShaderAssembler.assemble( Context3DProgramType.FRAGMENT,
 				// FC0 = (1, 2, 0, 0.5)
 				/*** Mosaic effect ***/
@@ -1293,14 +1305,14 @@ package {
 				// Get the middle pixel
 				"div ft1.xyxy, v2.xyxy, fc0.yyyy\n"+
 				"add ft2.xyzw, ft2.xyxy, ft1.xyxy\n"+
-				
+
 				// Use the pixelated UV?
 				"sge ft1.x, v2.x, fc0.z\n"+ // is pixelate_x >= 0?
 				"mul ft2.xyzw, ft2.xyzw, ft1.xxxx\n"+ // then use the pixelated UV
 				"slt ft1.x, v2.x, fc0.z\n"+ // is pixelate_x < 0?
 				"mul ft0.xyzw, ft0.xyzw, ft1.xxxx\n"+ // then use the pixelated UV
 				"add ft0.xyzw, ft0.xyzw, ft2.xyzw\n"+ // Add them together
-				
+
 				/*** Whirl effect ***/
 				"mov ft0.zwzw, fc0.zzzz\n" +
 				"mov ft4.xyzw, ft0.xyzw\n" +
@@ -1309,87 +1321,92 @@ package {
 				"sqt ft1.x, ft1.y\n" + // ft.x = d, len(uv) from center of texture (0.5, 0.5)
 				"div ft1.y, ft1.x, fc0.w\n" + // radius = 0.5 (to the edge)
 				"sub ft1.y, fc0.x, ft1.y\n" + // ft1.y = factor
-				
+
 				"mul ft1.z, ft1.y, ft1.y\n" +
 				"mul ft1.z, ft1.z, v2.z\n" + // ft1.z = a, using v2.w for whirlRadians
 				"sin ft2.xyzw, ft1.zzzz\n" + // ft2.x = sinAngle
 				"cos ft2.yyyy, ft1.zzzz\n" + // ft2.y = cosAngle
-				
+
 				"mul ft2.z, ft0.x, ft2.y\n" + // ft2.z = vec.x * cosAngle
 				"mul ft2.w, ft0.y, ft2.x\n" + // ft2.w = vec.y * sinAngle
 				"sub ft3.xyzw, ft2.zzzz, ft2.wwww\n" +
-				
+
 				"mul ft2.z, ft0.x, ft2.x\n" + // ft2.z = vec.x * sinAngle
 				"mul ft2.w, ft0.y, ft2.y\n" + // ft2.w = vec.y * cosAngle
 				"add ft3.yyyy, ft2.zzzz, ft2.wwww\n" +
 				"add ft3.xy, ft3.xy, fc0.ww\n" + // ft3.y = p.y
-				
+
 				"sge ft1.y, ft1.x, fc0.w\n" +
 				"mul ft4.xy, ft4.xy, ft1.yy\n" +
 				"slt ft1.y, ft1.x, fc0.w\n" +
 				"mul ft0.xy, ft3.xy, ft1.yy\n" +
 				"add ft0.xy, ft4.xy, ft0.xy\n" +
-				
+
 				"sat ft0.xy, ft0.xy\n" +
-				
+
 				/*** Fisheye effect ***/ // fisheye = v3.y
 				"sub ft1.xy, ft0.xy, fc0.ww\n" + // ft0.xy = vec = (uv - [0.5,0.5])
 				"div ft2.xy, ft1.xy, fc0.ww\n" + // vec = vec / [0.5, 0.5]
 				"mov ft2.zw, fc0.zz\n" +
 				"dp3 ft1.yyy, ft2.xyz, ft2.xyz\n" + // ft1.y = length(vec)^2
 				"sqt ft1.x, ft1.y\n" + // ft.x = length(vec)
-				
+
 				// Prevent divide by zero
 				"seq ft3.y, ft1.x, fc0.z\n"+ //int len_eq_zero = (v == 0);
 				"mul ft3.x, fc3.w, ft3.y\n"+ //tiny = 0.000001 * len_eq_zero; = ft3.x
 				"add ft1.x, ft1.x, ft3.x\n"+ //len = len + tiny;
-				
+
 				"div ft2.xy, ft2.xy, ft1.xx\n" + // vec2 = vec / len;
 				"pow ft1.y, ft1.x, v3.y\n" + // r = pow(len, scaledPower);
 				"mul ft2.xy, ft2.xy, ft1.yy\n" + // coords = center + (r * vec2 * center);
 				"mul ft2.xy, ft2.xy, fc0.ww\n" +
 				"add ft2.xy, ft2.xy, fc0.ww\n" +
-				
+
 				"sge ft1.x, ft1.y, fc0.x\n" +
 				"mul ft0.xy, ft0.xy, ft1.xx\n" +
 				"slt ft1.y, ft1.y, fc0.x\n" +
 				"mul ft2.xy, ft2.xy, ft1.yy\n" +
 				"add ft0.xy, ft2.xy, ft0.xy\n" +
-				
-				/*** Move the texture coordinates into the sub-texture space ***/ 
+
+				/*** Move the texture coordinates into the sub-texture space ***/
 				"mul ft0.xyzw, ft0.xyzw, v1.xyxy\n" +
 				"add ft0.xy, ft0.xy, v0.zw\n" +
-				
-				/*** Select texture to use ***/ 
+
+				/*** Floor the texture index ***/
+				"frc ft3.xyzw, v3.wwww\n"+
+				"sub ft3.x, v3.w, ft3.x\n"+
+
+				/*** Select texture to use (maxTextures is the most we can have) ***/
 				// Get the texture pixel using ft0.xy as the coordinates
-				"seq ft5, v3.w, fc0.z\n"+	// Use texture 0?
-				"tex ft1, ft0, fs0 <2d,clamp,linear,nomip>\n"+
-				"mul ft1, ft1, ft5\n"+
-				
-				"seq ft5, v3.w, fc0.x\n"+	// Use texture 1?
+				"seq ft5, ft3.x, fc0.z\n"+	// Use texture 0?
+				"tex ft2, ft0, fs0 <2d,clamp,linear,nomip>\n"+
+				"mul ft2, ft2, ft5\n"+
+				"mov ft1, ft2\n"+
+
+				"seq ft5, ft3.x, fc0.x\n"+	// Use texture 1?
 				"tex ft2, ft0, fs1 <2d,clamp,linear,nomip>\n"+
 				"mul ft2, ft2, ft5\n"+
 				"add ft1, ft1, ft2\n"+
-				
-				"seq ft5, v3.w, fc0.y\n"+	// Use texture 2?
-				"tex ft3, ft0, fs2 <2d,clamp,linear,nomip>\n"+
-				"mul ft3, ft3, ft5\n"+
-				"add ft1, ft1, ft3\n"+
-				
-				"seq ft5, v3.w, fc2.y\n"+	// Use texture 3?
-				"tex ft4, ft0, fs3 <2d,clamp,linear,nomip>\n"+
-				"mul ft4, ft4, ft5\n"+
-				"add ft1, ft1, ft4\n"+
-				
-				"seq ft5, v3.w, fc2.z\n"+	// Use texture 4?
-				"tex ft4, ft0, fs4 <2d,clamp,linear,nomip>\n"+
-				"mul ft4, ft4, ft5\n"+
-				"add ft1, ft1, ft4\n"+
-				
-				"seq ft5, v3.w, fc2.w\n"+	// Use texture 5?
-				"tex ft4, ft0, fs5 <2d,clamp,linear,nomip>\n"+
-				"mul ft4, ft4, ft5\n"+
-				"add ft1, ft1, ft4\n"+
+
+				"seq ft5, ft3.x, fc0.y\n"+	// Use texture 2?
+				"tex ft2, ft0, fs2 <2d,clamp,linear,nomip>\n"+
+				"mul ft2, ft2, ft5\n"+
+				"add ft1, ft1, ft2\n"+
+
+				"seq ft5, ft3.x, fc2.y\n"+	// Use texture 3?
+				"tex ft2, ft0, fs3 <2d,clamp,linear,nomip>\n"+
+				"mul ft2, ft2, ft5\n"+
+				"add ft1, ft1, ft2\n"+
+
+				"seq ft5, ft3.x, fc2.z\n"+	// Use texture 4?
+				"tex ft2, ft0, fs4 <2d,clamp,linear,nomip>\n"+
+				"mul ft2, ft2, ft5\n"+
+				"add ft1, ft1, ft2\n"+
+
+//				"seq ft5, ft3.x, fc2.w\n"+	// Use texture 5?
+//				"tex ft2, ft0, fs5 <2d,clamp,linear,nomip>\n"+
+//				"mul ft2, ft2, ft5\n"+
+//				"add ft1, ft1, ft2\n"+
 
 				/*** ft1 == (r, g, b, a) ***/
 				// Now de-multiply the color values that Flash pre-multiplied
@@ -1544,7 +1561,7 @@ package {
 				"mov ft5.w, ft2.z\n"+ //mov ft5.w, v; // v
 
 				/*** FIX i to be an integer on Intel Graphics 3000 with Chrome Pepper Flash ***/
-				//"add ft3.x, ft3.x, fc0.w\n"+ // fix i?
+				"add ft3.x, ft3.x, fc0.w\n"+ // fix i?
 				"frc ft3.y, ft3.x\n"+ // fix i?
 				"sub ft3.x, ft3.x, ft3.y\n"+ // fix i?
 
@@ -1698,7 +1715,11 @@ package {
 			m.copyRawDataFrom(sRawData);
 			return m;
 		}
+
+	public function getUIContainer():Sprite {
+		return uiContainer;
 	}
+}
 }
 
 internal final class Dbg

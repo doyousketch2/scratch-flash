@@ -94,7 +94,21 @@ public class StagePart extends UIPart {
 	public function setWidthHeight(w:int, h:int, scale:Number):void {
 		this.w = w;
 		this.h = h;
-		if (app.stagePane) app.stagePane.scaleX = app.stagePane.scaleY = scale;
+		if (app.stagePane && app.stagePane.scaleX != scale) {
+			app.stagePane.scaleX = app.stagePane.scaleY = scale;
+			var stagePane:ScratchStage = app.stagePane;
+			for(var i:int=0; i<stagePane.numChildren; ++i) {
+				var spr:ScratchSprite = (stagePane.getChildAt(i) as ScratchSprite);
+				if(spr) {
+					spr.clearCachedBitmap();
+					spr.updateCostume();
+					spr.applyFilters();
+				}
+			}
+			stagePane.clearCachedBitmap();
+			stagePane.updateCostume();
+			stagePane.applyFilters();
+		}
 		topBarHeight = computeTopBarHeight();
 		drawOutline();
 		fixLayout();

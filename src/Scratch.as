@@ -40,7 +40,9 @@ package {
 
 	import scratch.*;
 
-	import ui.parts.base.IScriptsPart;
+import ui.parts.base.ILibraryPart;
+
+import ui.parts.base.IScriptsPart;
 
 	import watchers.ListWatcher;
 
@@ -100,7 +102,7 @@ public class Scratch extends Sprite {
 	public var cameraDialog:CameraDialog;
 
 	// UI Parts
-	public var libraryPart:LibraryPart;
+	public var libraryPart:ILibraryPart;
 	protected var topBarPart:TopBarPart;
 	protected var stagePart:StagePart;
 	protected var tabsPart:TabsPart;
@@ -259,6 +261,7 @@ public class Scratch extends Sprite {
 		if(!enabled) {
 			go2D();
 			render3D = null;
+			isIn3D = false;
 		}
 		else {
 			for(var i:int=0; i<stagePane.numChildren; ++i) {
@@ -536,7 +539,7 @@ public class Scratch extends Sprite {
 		soundsPart = new SoundsPart(this);
 		addChild(topBarPart);
 		addChild(stagePart);
-		addChild(libraryPart);
+		addChild(libraryPart as DisplayObject);
 		addChild(tabsPart);
 	}
 
@@ -548,7 +551,7 @@ public class Scratch extends Sprite {
 		return new StagePart(this);
 	}
 
-	protected function getLibraryPart():LibraryPart {
+	protected function getLibraryPart():ILibraryPart {
 		return new LibraryPart(this);
 	}
 
@@ -562,7 +565,7 @@ public class Scratch extends Sprite {
 		if (editMode) {
 			hide(playerBG);
 			show(topBarPart);
-			show(libraryPart);
+			show(libraryPart as DisplayObject);
 			show(tabsPart);
 			setTab(lastTab);
 			stagePart.hidePlayButton();
@@ -571,7 +574,7 @@ public class Scratch extends Sprite {
 			addChildAt(playerBG, 0); // behind everything
 			playerBG.visible = false;
 			hide(topBarPart);
-			hide(libraryPart);
+			hide(libraryPart as DisplayObject);
 			hide(tabsPart);
 			setTab(null); // hides scripts, images, and sounds
 		}
@@ -630,8 +633,7 @@ public class Scratch extends Sprite {
 			fixLoadProgressLayout();
 			return;
 		}
-		libraryPart.x = stagePart.x;
-		libraryPart.y = stagePart.bottom() + 18;
+		libraryPart.setXY(stagePart.x, stagePart.bottom() + 18);
 		libraryPart.setWidthHeight(stagePart.w, h - libraryPart.y);
 
 		tabsPart.x = stagePart.right() + 5;
