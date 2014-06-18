@@ -39,16 +39,16 @@ public class LibraryPart extends UIPart implements ILibraryPart{
 
 	private const bgColor:int = 0xFFFFFF;
 	private const stageAreaWidth:int = 77;
-	private const updateInterval:int = 200; // msecs between thumbnail updates
+	protected const updateInterval:int = 200; // msecs between thumbnail updates
 
-	private var lastUpdate:uint; // time of last thumbnail update
+	protected var lastUpdate:uint; // time of last thumbnail update
 
-	private var shape:Shape;
+	protected var shape:Shape;
 
-	private var stageThumbnail:SpriteThumbnail;
-	private var spritesFrame:ScrollFrame;
+	protected var stageThumbnail:SpriteThumbnail;
+	protected var spritesFrame:ScrollFrame;
 	protected var spritesPane:ScrollFrameContents;
-	private var spriteDetails:SpriteInfoPart;
+	protected var spriteDetails:SpriteInfoPart;
 
 	private var spritesTitle:TextField;
 	private var newSpriteLabel:TextField;
@@ -71,15 +71,8 @@ public class LibraryPart extends UIPart implements ILibraryPart{
 		shape = new Shape();
 		addChild(shape);
 
-		spritesTitle = makeLabel(Translator.map('Sprites'), CSS.titleFormat, stageAreaWidth + 10, 5);
-		addChild(spritesTitle);
-
-		addChild(newSpriteLabel = makeLabel(Translator.map('New sprite:'), CSS.titleFormat, 10, 5));
-		addChild(libraryButton = makeButton(spriteFromLibrary, 'library'));
-		addChild(paintButton = makeButton(paintSprite, 'paintbrush'));
-		addChild(importButton = makeButton(spriteFromComputer, 'import'));
-		addChild(photoButton = makeButton(spriteFromCamera, 'camera'));
-
+		addSpritesTitle();
+		addNewSpriteButtons();
 		addStageArea();
 		addNewBackdropButtons();
 		addVideoControl();
@@ -145,7 +138,7 @@ public class LibraryPart extends UIPart implements ILibraryPart{
 		if (app.viewedObj()) refresh(); // refresh, but not during initialization
 	}
 
-	private function fixLayout():void {
+	protected function fixLayout():void {
 		var buttonY:int = 4;
 
 		libraryButton.x = 380;
@@ -218,7 +211,7 @@ public class LibraryPart extends UIPart implements ILibraryPart{
 		step();
 	}
 
-	private function scrollToSelectedSprite():void {
+	protected function scrollToSelectedSprite():void {
 		var viewedObj:ScratchObj = app.viewedObj();
 		var sel:SpriteThumbnail;
 		for (var i:int = 0; i < spritesPane.numChildren; i++) {
@@ -252,12 +245,25 @@ public class LibraryPart extends UIPart implements ILibraryPart{
 		if (videoButton.visible) updateVideoButton();
 	}
 
-	private function addStageArea():void {
+	protected function addSpritesTitle():void {
+		spritesTitle = makeLabel(Translator.map('Sprites'), CSS.titleFormat, stageAreaWidth + 10, 5);
+		addChild(spritesTitle);
+	}
+
+	protected function addNewSpriteButtons():void {
+		addChild(newSpriteLabel = makeLabel(Translator.map('New sprite:'), CSS.titleFormat, 10, 5));
+		addChild(libraryButton = makeButton(spriteFromLibrary, 'library'));
+		addChild(paintButton = makeButton(paintSprite, 'paintbrush'));
+		addChild(importButton = makeButton(spriteFromComputer, 'import'));
+		addChild(photoButton = makeButton(spriteFromCamera, 'camera'));
+	}
+
+	protected function addStageArea():void {
 		stageThumbnail = new SpriteThumbnail(app.stagePane, app);
 		addChild(stageThumbnail);
 	}
 
-	private function addNewBackdropButtons():void {
+	protected function addNewBackdropButtons():void {
 		addChild(newBackdropLabel = makeLabel(
 			Translator.map('New backdrop:'), smallTextFormat, 3, 126));
 
@@ -278,7 +284,7 @@ public class LibraryPart extends UIPart implements ILibraryPart{
 		backdropCameraButton.y = buttonY + 3;
 	}
 
-	private function addSpritesArea():void {
+	protected function addSpritesArea():void {
 		spritesPane = new ScrollFrameContents();
 		spritesPane.color = bgColor;
 		spritesPane.hExtra = spritesPane.vExtra = 0;
@@ -312,7 +318,7 @@ public class LibraryPart extends UIPart implements ILibraryPart{
 		if (videoButton.isOn() != isOn) videoButton.setOn(isOn);
 	}
 
-	private function addVideoControl():void {
+	protected function addVideoControl():void {
 		function turnVideoOn(b:IconButton):void {
 			app.stagePane.setVideoState(b.isOn() ? 'on' : 'off');
 			app.setSaveNeeded();
@@ -352,7 +358,7 @@ public class LibraryPart extends UIPart implements ILibraryPart{
 	}
 
 	private function spriteFromComputer(b:IconButton):void { importSprite(true) }
-	private function spriteFromLibrary(b:IconButton):void { importSprite(false) }
+	protected function spriteFromLibrary(b:IconButton):void { importSprite(false) }
 
 	private function importSprite(fromComputer:Boolean):void {
 		function addSprite(costumeOrSprite:*):void {
@@ -378,7 +384,6 @@ public class LibraryPart extends UIPart implements ILibraryPart{
 				if (spr.costumes.length > 1) spr.costumes.shift(); // remove default costume
 				spr.showCostumeNamed(list[0].costumeName);
 				app.addNewSprite(spr);
-				
 			}
 		}
 		var lib:MediaLibrary = new MediaLibrary(app, 'sprite', addSprite);
@@ -389,7 +394,7 @@ public class LibraryPart extends UIPart implements ILibraryPart{
 	// -----------------------------
 	// New Backdrop Operations
 	//------------------------------
-	
+
 	private function backdropFromCamera(b:IconButton):void {
 		function savePhoto(photo:BitmapData):void {
 			addBackdrop(new ScratchCostume(Translator.map('photo1'), photo));
@@ -397,7 +402,7 @@ public class LibraryPart extends UIPart implements ILibraryPart{
 		}
 		app.openCameraDialog(savePhoto);
 	}
-	
+
 	private function backdropFromComputer(b:IconButton):void {
 		var lib:MediaLibrary = new MediaLibrary(app, 'backdrop', addBackdrop);
 		lib.importFromDisk();
@@ -411,7 +416,7 @@ public class LibraryPart extends UIPart implements ILibraryPart{
 	private function paintBackdrop(b:IconButton):void {
 		addBackdrop(ScratchCostume.emptyBitmapCostume(Translator.map('backdrop1'), true));
 	}
-	
+
 	private function addBackdrop(costumeOrList:*):void {
 		var c:ScratchCostume = costumeOrList as ScratchCostume;
 		if (c) {
@@ -473,7 +478,7 @@ public class LibraryPart extends UIPart implements ILibraryPart{
 	// Misc
 	//------------------------------
 
-	private function allThumbnails():Array {
+	protected function allThumbnails():Array {
 		// Return a list containing all thumbnails.
 		var result:Array = [stageThumbnail];
 		for (var i:int = 0; i < spritesPane.numChildren; i++) {
