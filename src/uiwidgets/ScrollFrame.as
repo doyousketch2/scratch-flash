@@ -220,11 +220,29 @@ public class ScrollFrame extends Sprite implements DragClient {
 	}
 
 	private function mouseDown(evt:MouseEvent):void {
-		if (evt.shiftKey || !dragScrolling) return;
-		if (evt.target == contents) {
-			Object(root).gh.setDragClient(this, evt);
-			contents.mouseChildren = false; // disable mouse events while scrolling
+		if (!dragScrolling) return;
+		if (xVelocity || yVelocity) {
+			initDrag(evt);
+		} else {
+			stage.addEventListener(MouseEvent.MOUSE_MOVE, mouseMove);
+			stage.addEventListener(MouseEvent.MOUSE_UP, mouseUp);
 		}
+	}
+
+	private function mouseMove(evt:MouseEvent):void {
+		initDrag(evt);
+		stage.removeEventListener(MouseEvent.MOUSE_MOVE, mouseMove);
+		stage.removeEventListener(MouseEvent.MOUSE_UP, mouseUp);
+	}
+
+	private function mouseUp(evt:MouseEvent):void {
+		stage.removeEventListener(MouseEvent.MOUSE_MOVE, mouseMove);
+		stage.removeEventListener(MouseEvent.MOUSE_UP, mouseUp);
+	}
+
+	private function initDrag(evt:MouseEvent):void {
+		Object(root).gh.setDragClient(this, evt);
+		contents.mouseChildren = false; // disable mouse events while scrolling
 	}
 
 	public function dragBegin(evt:MouseEvent):void {
@@ -233,7 +251,7 @@ public class ScrollFrame extends Sprite implements DragClient {
 		xOffset = mouseX - contents.x;
 		yOffset = mouseY - contents.y;
 
-		if (visibleW() < contents.width) showHScrollbar(true);
+		if (visibleW() < contents.width) showHScrollbar(allowHorizontalScrollbar);
 		if (visibleH() < contents.height) showVScrollbar(true);
 		if (hScrollbar) hScrollbar.allowDragging(false);
 		if (vScrollbar) vScrollbar.allowDragging(false);
@@ -247,7 +265,7 @@ public class ScrollFrame extends Sprite implements DragClient {
 		yHistory.push(mouseY);
 		xHistory.shift();
 		yHistory.shift();
-		contents.x = mouseX - xOffset;
+		if (allowHorizontalScrollbar) contents.x = mouseX - xOffset;
 		contents.y = mouseY - yOffset;
 		constrainScroll();
 		updateScrollbars();
@@ -268,7 +286,7 @@ public class ScrollFrame extends Sprite implements DragClient {
 		yVelocity = decayFactor * yVelocity;
 		if (Math.abs(xVelocity) < stopThreshold) xVelocity = 0;
 		if (Math.abs(yVelocity) < stopThreshold) yVelocity = 0;
-		contents.x += xVelocity;
+		if (allowHorizontalScrollbar) contents.x += xVelocity;
 		contents.y += yVelocity;
 
 		contents.x = Math.max(-maxScrollH(), Math.min(contents.x, 0));
