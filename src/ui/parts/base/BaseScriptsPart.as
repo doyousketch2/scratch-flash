@@ -79,7 +79,7 @@ public class BaseScriptsPart extends UIPart implements IScriptsPart {
 		paletteFrame.setContents(palette);
 		addChild(paletteFrame);
 
-		var scriptsPane:ScriptsPane = new ScriptsPane(app);
+		var scriptsPane:ScriptsPane = getScriptsPane();
 		scriptsFrame = new ScrollFrame();
 		scriptsFrame.setContents(scriptsPane);
 		addChild(scriptsFrame);
@@ -88,6 +88,10 @@ public class BaseScriptsPart extends UIPart implements IScriptsPart {
 		app.scriptsPane = scriptsPane;
 
 		addChild(zoomWidget = new ZoomWidget(scriptsPane));
+	}
+
+	protected function getScriptsPane():ScriptsPane {
+		return new ScriptsPane(app);
 	}
 
 	// Derived classes need to actually do something with the layout
