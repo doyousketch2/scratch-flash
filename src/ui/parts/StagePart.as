@@ -42,17 +42,17 @@ public class StagePart extends UIPart {
 	private const topBarHeightNormal:int = 39;
 	private const topBarHeightSmallPlayerMode:int = 26;
 
-	private var topBarHeight:int = topBarHeightNormal;
+	protected var topBarHeight:int = topBarHeightNormal;
 
-	private var outline:Shape;
+	protected var outline:Shape;
 	protected var projectTitle:EditableLabel;
 	protected var projectInfo:TextField;
-	private var versionInfo:TextField;
-	private var turboIndicator:TextField;
-	private var runButton:IconButton;
-	private var stopButton:IconButton;
-	private var fullscreenButton:IconButton;
-	private var stageSizeButton:Sprite;
+	protected var versionInfo:TextField;
+	protected var turboIndicator:TextField;
+	protected var runButton:IconButton;
+	protected var stopButton:IconButton;
+	protected var fullscreenButton:IconButton;
+	protected var stageSizeButton:Sprite;
 
 	private var playButton:Sprite; // YouTube-like play button in center of screen; used by Kiosk version
 	private var userNameWarning:Sprite; // Container for privacy warning message for projects that use username block
@@ -163,7 +163,7 @@ public class StagePart extends UIPart {
 	// Layout
 	//------------------------------
 
-	private function drawOutline():void {
+	protected function drawOutline():void {
 		var topBarColors:Array = app.isSmallPlayer ? [CSS.tabColor, CSS.tabColor] : CSS.titleBarColors;
 
 		var g:Graphics = outline.graphics;
@@ -246,7 +246,7 @@ public class StagePart extends UIPart {
 		addChild(turboIndicator);
 	}
 
-	private function addXYReadouts():void {
+	protected function addXYReadouts():void {
 		readouts = new Sprite();
 		addChild(readouts);
 
@@ -291,7 +291,7 @@ public class StagePart extends UIPart {
 
 	private var lastX:int, lastY:int;
 
-	private function updateMouseReadout():void {
+	protected function updateMouseReadout():void {
 		// Update the mouse reaadouts. Do nothing if they are up-to-date (to minimize CPU load).
 		if (stage.mouseX != lastX) {
 			lastX = app.stagePane.scratchMouseX();
