@@ -314,7 +314,7 @@ public class StagePart extends UIPart {
 		if (playButton) hidePlayButton();
 	}
 
-	private function addRunStopButtons():void {
+	protected function addRunStopButtons():void {
 		function startAll(b:IconButton):void { playButtonPressed(b.lastEvent) }
 		function stopAll(b:IconButton):void { app.runtime.stopAll() }
 		runButton = new IconButton(startAll, 'greenflag');
@@ -324,7 +324,7 @@ public class StagePart extends UIPart {
 		addChild(stopButton);
 	}
 
-	private function addFullScreenButton():void {
+	protected function addFullScreenButton():void {
 		function toggleFullscreen(b:IconButton):void {
 			app.setPresentationMode(b.isOn());
 			drawOutline();
