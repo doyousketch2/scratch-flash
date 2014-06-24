@@ -39,6 +39,7 @@ public class BlockMenus implements DragClient {
 	private var blockArg:BlockArg; // null if menu is invoked on a block
 
 	private static const basicMathOps:Array = ['+', '-', '*', '/'];
+	private static const booleanOps:Array = ['&', '|'];
 	private static const comparisonOps:Array = ['<', '=', '>'];
 
 	public static function BlockMenuHandler(evt:MouseEvent, block:Block, blockArg:BlockArg = null, menuName:String = null):void {
@@ -50,6 +51,7 @@ public class BlockMenus implements DragClient {
 			if ((op == Specs.PROCEDURE_DEF) || (op == Specs.CALL)) menuName = 'procMenu';
 			if ((op == 'broadcast:') || (op == 'doBroadcastAndWait') || (op == 'whenIReceive')) menuName = 'broadcastInfoMenu';
 			if ((basicMathOps.indexOf(op)) > -1) { menuHandler.changeOpMenu(evt, basicMathOps); return; }
+			if ((booleanOps.indexOf(op)) > -1) { menuHandler.changeOpMenu(evt, booleanOps); return; }
 			if ((comparisonOps.indexOf(op)) > -1) { menuHandler.changeOpMenu(evt, comparisonOps); return; }
 			if (menuName == null) { menuHandler.genericBlockMenu(evt); return; }
 		}
